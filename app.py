@@ -76,6 +76,22 @@ def image_to_png_bytes(img: np.ndarray) -> bytes:
     return buf.getvalue()
 
 
+# ── Apply pending imported parameters before widgets are created ──────
+if "_pending_params" in st.session_state:
+    params = st.session_state.pop("_pending_params")
+    if "gaussian_sigma" in params:
+        st.session_state.seg_sigma = params["gaussian_sigma"]
+    if "min_area" in params:
+        st.session_state.seg_min_area = params["min_area"]
+    if "max_area" in params:
+        st.session_state.seg_max_area = params["max_area"]
+    if "min_distance" in params:
+        st.session_state.seg_min_dist = params["min_distance"]
+    if "dilation_radius" in params:
+        st.session_state.mtap_dilation = params["dilation_radius"]
+    if "min_cytoplasm_pixels" in params:
+        st.session_state.mtap_min_cyto = params["min_cytoplasm_pixels"]
+
 # ── Sidebar ───────────────────────────────────────────────────────────
 st.sidebar.title("Parameters")
 
@@ -115,21 +131,10 @@ if uploaded is not None and st.session_state.image_rgb is None:
             for key, value in state.items():
                 if key != "parameters":
                     st.session_state[key] = value
-            # Restore sidebar parameters from bundle
+            # Store parameters for restoration on next rerun (before widgets)
             params = state.get("parameters", {})
             if params:
-                if "gaussian_sigma" in params:
-                    st.session_state.seg_sigma = params["gaussian_sigma"]
-                if "min_area" in params:
-                    st.session_state.seg_min_area = params["min_area"]
-                if "max_area" in params:
-                    st.session_state.seg_max_area = params["max_area"]
-                if "min_distance" in params:
-                    st.session_state.seg_min_dist = params["min_distance"]
-                if "dilation_radius" in params:
-                    st.session_state.mtap_dilation = params["dilation_radius"]
-                if "min_cytoplasm_pixels" in params:
-                    st.session_state.mtap_min_cyto = params["min_cytoplasm_pixels"]
+                st.session_state._pending_params = params
             n_nuclei = int(state["labels"].max())
             st.write(f"Restored **{n_nuclei}** nuclei from {state.get('source_filename', 'unknown')}")
             status.update(label="Import complete!", state="complete")
